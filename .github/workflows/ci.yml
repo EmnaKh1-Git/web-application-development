@@ -1,0 +1,68 @@
+# Intégration continue : exécutée sur chaque pull request et à chaque fusion.
+# Une PR ne peut être fusionnée que si ces vérifications sont vertes (règle de protection de branche).
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint et format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  test:
+    name: Tests et build
+    runs-on: ubuntu-latest
+    services:
+      # Base MySQL éphémère, détruite à la fin du job (identifiants sans valeur hors de la CI)
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root
+          MYSQL_DATABASE: smart_ecommerce_test
+          MYSQL_USER: smart_ci
+          MYSQL_PASSWORD: smart-ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: smart_ecommerce
+      DB_NAME_TEST: smart_ecommerce_test
+      DB_USER: smart_ci
+      DB_PASSWORD: smart-ci
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Secret JWT aléatoire (jamais écrit dans le dépôt)
+        run: echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - name: Tests (shared, back-end unitaires + intégration MySQL, front-end)
+        run: npm test
+      - name: Build du front-end
+        run: npm run build

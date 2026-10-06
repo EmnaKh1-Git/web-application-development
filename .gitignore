@@ -1,0 +1,25 @@
+# Dépendances
+node_modules/
+
+# Builds et rapports
+dist/
+build/
+coverage/
+
+# Variables d'environnement : JAMAIS dans Git (seuls les .env.example sont versionnés)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Systèmes / éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.claude/

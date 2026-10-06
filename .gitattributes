@@ -1,0 +1,12 @@
+# Fins de ligne LF pour tout le monde (Windows, macOS, Linux) :
+# évite les diffs « fantômes » et les scripts shell cassés dans Docker.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
