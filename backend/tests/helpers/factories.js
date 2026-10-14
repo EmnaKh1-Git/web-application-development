@@ -51,6 +51,8 @@ export async function createTestProduct({
   lowStockThreshold = 5,
   isActive = true,
   categoryId,
+  sizes = [],
+  colors = [],
 } = {}) {
   sequence += 1;
   const category = categoryId ? { id: categoryId } : await createTestCategory();
@@ -61,6 +63,8 @@ export async function createTestProduct({
     description: 'Description du produit de test.',
     price,
     isActive,
+    sizes,
+    colors,
   });
   await models.Stock.create({ productId: product.id, quantity, lowStockThreshold });
   return product;

@@ -22,6 +22,7 @@ export const PERMISSIONS = Object.freeze({
   COMPLAINTS_MANAGE: 'complaints:manage',
   STOCK_READ: 'stock:read',
   STOCK_MANAGE: 'stock:manage',
+  AI_INSIGHTS: 'ai:insights', // Centre IA : briefing, indicateurs et évaluation des modèles
 });
 
 export const PERMISSION_LIST = Object.freeze(Object.values(PERMISSIONS));
@@ -34,7 +35,11 @@ export const ROLE_PERMISSIONS = Object.freeze({
     PERMISSIONS.REVIEWS_WRITE,
     PERMISSIONS.COMPLAINTS_CREATE,
   ]),
-  [ROLES.STOCK_MANAGER]: Object.freeze([PERMISSIONS.STOCK_READ, PERMISSIONS.STOCK_MANAGE]),
+  [ROLES.STOCK_MANAGER]: Object.freeze([
+    PERMISSIONS.STOCK_READ,
+    PERMISSIONS.STOCK_MANAGE,
+    PERMISSIONS.AI_INSIGHTS,
+  ]),
   // L'administrateur possède toutes les permissions.
   [ROLES.ADMIN]: PERMISSION_LIST,
 });

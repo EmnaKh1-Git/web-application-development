@@ -8,11 +8,11 @@ import { createTestAddress } from './factories.js';
  */
 export async function placeOrder(app, client, items, { statuses = [] } = {}) {
   const address = await createTestAddress(client.user.id);
-  for (const { productId, quantity } of items) {
+  for (const { productId, quantity, size, color } of items) {
     const res = await request(app)
       .post('/api/v1/cart/items')
       .set('Authorization', client.authHeader)
-      .send({ productId, quantity });
+      .send({ productId, quantity, size, color });
     if (res.status !== 200) throw new Error(`Ajout au panier impossible : ${res.text}`);
   }
   const created = await request(app)

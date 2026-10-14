@@ -1,5 +1,6 @@
 import { BACK_OFFICE_ROLES } from '@smart-ecommerce/shared';
 import { createBrowserRouter } from 'react-router';
+import { aiAdminRoutes } from '@/features/ai/routes';
 import { authRoutes } from '@/features/auth/routes';
 import { cartOrdersRoutes, ordersAdminRoutes } from '@/features/cart-orders/routes';
 import { productsAdminRoutes, productsRoutes } from '@/features/products/routes';
@@ -53,6 +54,7 @@ export const routes = [
       ...ordersAdminRoutes,
       ...complaintsAdminRoutes,
       ...stockAdminRoutes,
+      ...aiAdminRoutes,
       { path: '*', element: <NotFoundPage /> },
     ],
   },

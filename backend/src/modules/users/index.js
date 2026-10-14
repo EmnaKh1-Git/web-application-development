@@ -13,6 +13,7 @@ export {
   emailExists,
   findUserByEmailWithPassword,
   findUserById,
+  listCustomers,
 } from './users.service.js';
 export { findUserAddress } from './addresses.service.js';
 export { toUserResponse } from './users.mapper.js';

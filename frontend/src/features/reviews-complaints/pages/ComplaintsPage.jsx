@@ -1,125 +1,187 @@
-import { useEffect, useState } from 'react';
-import { complaintsApi } from '../api/complaintsApi';
-import { Alert } from '@/shared/components/ui/Alert';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { complaintSchema } from '@smart-ecommerce/shared';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { MessageSquareReply, MessageSquareWarning } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useSearchParams } from 'react-router';
+import { orderKeys, ordersApi } from '@/features/cart-orders/api/ordersApi';
+import { QueryError } from '@/shared/components/QueryError';
 import { Button } from '@/shared/components/ui/Button';
+import { EmptyState } from '@/shared/components/ui/EmptyState';
+import { PageHeader } from '@/shared/components/ui/PageHeader';
+import { Pagination } from '@/shared/components/ui/Pagination';
+import { SelectField } from '@/shared/components/ui/SelectField';
+import { PageSpinner } from '@/shared/components/ui/Spinner';
+import { TextAreaField } from '@/shared/components/ui/TextAreaField';
 import { TextField } from '@/shared/components/ui/TextField';
+import { formatDate, formatDateTime, formatPrice } from '@/shared/utils/format';
+import { applyServerValidationErrors } from '@/shared/utils/forms';
+import { notifyError, notifySuccess } from '@/shared/utils/notify';
+import { complaintKeys, complaintsApi } from '../api/complaintsApi';
+import { ComplaintStatusBadge } from '../components/ComplaintStatusBadge';
 
-const labels = {
-  OPEN: 'Ouverte',
-  IN_PROGRESS: 'En traitement',
-  RESOLVED: 'Résolue',
-  REJECTED: 'Rejetée',
-};
-
+/** Réclamations du client : dépôt (éventuellement liée à une commande) et suivi des réponses. */
 export function ComplaintsPage() {
-  const [items, setItems] = useState([]);
-  const [form, setForm] = useState({ subject: '', description: '', orderId: '' });
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const load = async () => {
-    try {
-      setItems((await complaintsApi.mine()).data);
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  };
-  useEffect(() => {
-    let cancelled = false;
-    const fetchComplaints = async () => {
-      try {
-        const response = await complaintsApi.mine();
-        if (!cancelled) setItems(response.data);
-      } catch (requestError) {
-        if (!cancelled) setError(requestError.message);
-      }
-    };
-    fetchComplaints();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  const submit = async (event) => {
-    event.preventDefault();
-    try {
-      await complaintsApi.create({ ...form, orderId: form.orderId || undefined });
-      setForm({ subject: '', description: '', orderId: '' });
-      setMessage('Votre réclamation a été envoyée.');
-      await load();
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  };
+  const [page, setPage] = useState(1);
+  const params = { page, limit: 10 };
+  const query = useQuery({
+    queryKey: complaintKeys.mine(params),
+    queryFn: () => complaintsApi.listMine(params),
+    placeholderData: keepPreviousData,
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Mes réclamations</h1>
-        <p className="mt-1 text-slate-600">Signalez un problème et suivez sa résolution.</p>
+      <PageHeader
+        title="Mes réclamations"
+        description="Un problème avec une commande ? Notre équipe vous répond rapidement."
+      />
+      <div className="grid gap-6 lg:grid-cols-[400px_1fr]">
+        <ComplaintForm />
+        <section aria-labelledby="history-title" className="min-w-0 space-y-4">
+          <h2 id="history-title" className="text-lg font-semibold">
+            Historique
+          </h2>
+          {query.isPending ? (
+            <PageSpinner />
+          ) : query.isError ? (
+            <QueryError error={query.error} onRetry={query.refetch} />
+          ) : query.data.data.length === 0 ? (
+            <EmptyState
+              icon={MessageSquareWarning}
+              title="Aucune réclamation"
+              description="Vous n’avez déposé aucune réclamation."
+            />
+          ) : (
+            <>
+              <ul className="space-y-3">
+                {query.data.data.map((complaint) => (
+                  <li
+                    key={complaint.id}
+                    className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <h3 className="font-semibold">{complaint.subject}</h3>
+                        <p className="text-xs text-slate-500">
+                          Réclamation n°{complaint.id} · {formatDate(complaint.createdAt)}
+                          {complaint.orderId && (
+                            <>
+                              {' · '}
+                              <Link
+                                to={`/orders/${complaint.orderId}`}
+                                className="font-medium text-brand-700 hover:underline"
+                              >
+                                commande n°{complaint.orderId}
+                              </Link>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <ComplaintStatusBadge status={complaint.status} />
+                    </div>
+                    <p className="mt-3 text-sm whitespace-pre-line text-slate-700">
+                      {complaint.description}
+                    </p>
+                    {complaint.adminResponse && (
+                      <div className="mt-4 rounded-xl bg-brand-50 p-4 text-sm ring-1 ring-brand-100">
+                        <p className="flex items-center gap-2 font-semibold text-brand-800">
+                          <MessageSquareReply aria-hidden="true" className="size-4" />
+                          Réponse de l’équipe
+                          {complaint.handledAt && (
+                            <span className="font-normal text-brand-700">
+                              · {formatDateTime(complaint.handledAt)}
+                            </span>
+                          )}
+                        </p>
+                        <p className="mt-1 whitespace-pre-line text-slate-700">
+                          {complaint.adminResponse}
+                        </p>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <Pagination
+                meta={query.data.meta}
+                itemLabel="réclamation(s)"
+                onPageChange={setPage}
+              />
+            </>
+          )}
+        </section>
       </div>
-      {error && (
-        <Alert variant="error" title="Erreur">
-          {error}
-        </Alert>
-      )}
-      {message && <Alert variant="success">{message}</Alert>}
-      <form
-        onSubmit={submit}
-        className="space-y-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
-      >
-        <h2 className="text-lg font-semibold">Déposer une réclamation</h2>
-        <TextField
-          label="Objet"
-          minLength="5"
-          value={form.subject}
-          onChange={(event) => setForm({ ...form, subject: event.target.value })}
-          required
-        />
-        <TextField
-          label="Numéro de commande (facultatif)"
-          type="number"
-          min="1"
-          value={form.orderId}
-          onChange={(event) => setForm({ ...form, orderId: event.target.value })}
-        />
-        <label className="block text-sm font-medium text-slate-700">
-          Description
-          <textarea
-            required
-            minLength="20"
-            value={form.description}
-            onChange={(event) => setForm({ ...form, description: event.target.value })}
-            className="mt-1.5 block min-h-32 w-full rounded-lg px-3 py-2 ring-1 ring-slate-300"
-          />
-        </label>
-        <Button type="submit">Envoyer la réclamation</Button>
-      </form>
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Historique</h2>
-        {items.length === 0 ? (
-          <Alert title="Aucune réclamation">Vous n'avez pas encore déposé de réclamation.</Alert>
-        ) : (
-          items.map((item) => (
-            <article key={item.id} className="rounded-xl bg-white p-5 ring-1 ring-slate-200">
-              <div className="flex flex-wrap justify-between gap-2">
-                <h3 className="font-semibold">
-                  #{item.id} — {item.subject}
-                </h3>
-                <span className="rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700">
-                  {labels[item.status] ?? item.status}
-                </span>
-              </div>
-              <p className="mt-2 text-slate-600">{item.description}</p>
-              {item.orderId && (
-                <p className="mt-2 text-sm text-slate-500">Commande #{item.orderId}</p>
-              )}
-              {item.adminResponse && (
-                <Alert className="mt-3" variant="info" title="Réponse de l'équipe">
-                  {item.adminResponse}
-                </Alert>
-              )}
-            </article>
-          ))
-        )}
-      </section>
     </div>
+  );
+}
+
+function ComplaintForm() {
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const ordersParams = { page: 1, limit: 50 };
+  const ordersQuery = useQuery({
+    queryKey: orderKeys.mine(ordersParams),
+    queryFn: () => ordersApi.listMine(ordersParams),
+  });
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(complaintSchema),
+    // ?orderId=12 : arrivée depuis le détail d'une commande (« Signaler un problème »)
+    defaultValues: { subject: '', description: '', orderId: searchParams.get('orderId') ?? '' },
+  });
+  const mutation = useMutation({
+    mutationFn: complaintsApi.create,
+    onSuccess: async (complaint) => {
+      notifySuccess(
+        `Réclamation n°${complaint.id} envoyée`,
+        'Vous serez informé ici de la réponse de notre équipe.',
+      );
+      reset({ subject: '', description: '', orderId: '' });
+      await queryClient.invalidateQueries({ queryKey: complaintKeys.all });
+    },
+    onError: (error) => {
+      if (!applyServerValidationErrors(error, setError)) notifyError(error);
+    },
+  });
+
+  return (
+    <form
+      noValidate
+      onSubmit={handleSubmit((values) => mutation.mutate(values))}
+      className="space-y-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 lg:sticky lg:top-24 lg:self-start"
+    >
+      <h2 className="text-lg font-semibold">Nouvelle réclamation</h2>
+      <SelectField
+        // Remonté quand les commandes arrivent : la valeur pré-remplie est alors sélectionnée
+        key={ordersQuery.isSuccess ? 'orders-loaded' : 'orders-loading'}
+        label="Commande concernée (facultatif)"
+        error={errors.orderId?.message}
+        {...register('orderId')}
+      >
+        <option value="">Aucune commande en particulier</option>
+        {(ordersQuery.data?.data ?? []).map((order) => (
+          <option key={order.id} value={order.id}>
+            N°{order.id} du {formatDate(order.createdAt)} — {formatPrice(order.totalAmount)}
+          </option>
+        ))}
+      </SelectField>
+      <TextField label="Objet" error={errors.subject?.message} {...register('subject')} />
+      <TextAreaField
+        label="Description"
+        rows={5}
+        placeholder="Décrivez le problème rencontré (20 caractères minimum)"
+        error={errors.description?.message}
+        {...register('description')}
+      />
+      <Button type="submit" fullWidth isLoading={mutation.isPending}>
+        Envoyer la réclamation
+      </Button>
+    </form>
   );
 }

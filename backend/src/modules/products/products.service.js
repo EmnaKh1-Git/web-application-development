@@ -181,6 +181,16 @@ export async function getProductSummaries(productIds, { transaction } = {}) {
   );
 }
 
+/** Catalogue complet (produits actifs par défaut) pour les analyses du module IA. */
+export async function getCatalogSnapshot({ includeInactive = false } = {}) {
+  const products = await Product.findAll({
+    where: includeInactive ? {} : { isActive: true },
+    include: [categoryInclude, stockInclude],
+    order: [['id', 'ASC']],
+  });
+  return products.map(toProductResponse);
+}
+
 /** Vérifie qu'un produit existe (et est actif, par défaut). */
 export async function assertProductExists(productId, { activeOnly = true } = {}) {
   const where = { id: productId, ...(activeOnly && { isActive: true }) };

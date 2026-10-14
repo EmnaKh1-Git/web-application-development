@@ -9,10 +9,12 @@ import productsRoutes from './products.routes.js';
 export {
   assertProductExists,
   decrementSalesCount,
+  getCatalogSnapshot,
   getProductSummaries,
   incrementSalesCount,
   updateProductRating,
 } from './products.service.js';
+export { listCategories } from './categories.service.js';
 
 export function registerRoutes(apiRouter) {
   apiRouter.use('/categories', categoriesRoutes);

@@ -9,7 +9,14 @@ export const AuthContext = createContext(null);
  *
  * status : 'loading' (vérification du jeton au démarrage) | 'authenticated' | 'anonymous'
  */
-export function createAuthValue({ user = null, status = 'anonymous', login, register, logout }) {
+export function createAuthValue({
+  user = null,
+  status = 'anonymous',
+  login,
+  register,
+  logout,
+  updateUser,
+}) {
   return {
     user,
     status,
@@ -17,6 +24,7 @@ export function createAuthValue({ user = null, status = 'anonymous', login, regi
     login,
     register,
     logout,
+    updateUser,
     hasRole: (...roles) => Boolean(user && roles.includes(user.role)),
     hasPermission: (permission) => Boolean(user && roleHasPermission(user.role, permission)),
     isBackOfficeUser: Boolean(user && BACK_OFFICE_ROLES.includes(user.role)),

@@ -1,5 +1,13 @@
 import { PERMISSIONS } from '@smart-ecommerce/shared';
-import { Boxes, ClipboardList, MessageSquareWarning, Package, Tags, Users } from 'lucide-react';
+import {
+  Boxes,
+  ClipboardList,
+  MessageSquareWarning,
+  Package,
+  Sparkles,
+  Tags,
+  Users,
+} from 'lucide-react';
 
 /**
  * Sections du back-office. Chaque section n'est affichée qu'aux utilisateurs
@@ -47,5 +55,12 @@ export const ADMIN_SECTIONS = [
     description: 'Quantités, alertes de stock faible, ruptures',
     icon: Boxes,
     permission: PERMISSIONS.STOCK_READ,
+  },
+  {
+    to: '/admin/ai',
+    label: 'Centre IA',
+    description: 'Prévisions, recommandations, analyses et qualité des modèles',
+    icon: Sparkles,
+    permission: PERMISSIONS.AI_INSIGHTS,
   },
 ];

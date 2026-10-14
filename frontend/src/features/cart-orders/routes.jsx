@@ -1,8 +1,9 @@
 import { PERMISSIONS } from '@smart-ecommerce/shared';
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute';
-import { CartPage } from './pages/CartPage';
-import { OrdersPage } from './pages/OrdersPage';
 import { AdminOrdersPage } from './pages/AdminOrdersPage';
+import { CartPage } from './pages/CartPage';
+import { OrderDetailPage } from './pages/OrderDetailPage';
+import { OrdersPage } from './pages/OrdersPage';
 
 // Module Panier, Commandes & Livraison — Oussama
 
@@ -21,6 +22,14 @@ export const cartOrdersRoutes = [
     element: (
       <ProtectedRoute permissions={[PERMISSIONS.ORDERS_PLACE]}>
         <OrdersPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: 'orders/:id',
+    element: (
+      <ProtectedRoute permissions={[PERMISSIONS.ORDERS_PLACE]}>
+        <OrderDetailPage />
       </ProtectedRoute>
     ),
   },

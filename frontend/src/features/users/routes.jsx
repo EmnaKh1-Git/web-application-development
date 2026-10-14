@@ -1,7 +1,7 @@
 import { PERMISSIONS } from '@smart-ecommerce/shared';
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute';
-import { ComingSoonPage } from '@/shared/pages/ComingSoonPage';
 import { AccountPage } from './pages/AccountPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 
 // Module Utilisateurs — Fares
 
@@ -23,15 +23,7 @@ export const usersAdminRoutes = [
     path: 'users',
     element: (
       <ProtectedRoute permissions={[PERMISSIONS.USERS_MANAGE]}>
-        <ComingSoonPage
-          title="Gestion des utilisateurs"
-          owner="Fares"
-          features={[
-            'Liste et recherche des utilisateurs',
-            'Blocage et déblocage des comptes',
-            'Gestion des rôles',
-          ]}
-        />
+        <AdminUsersPage />
       </ProtectedRoute>
     ),
   },

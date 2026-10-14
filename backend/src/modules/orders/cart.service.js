@@ -1,4 +1,5 @@
 import { MAX_CART_ITEM_QUANTITY } from '@smart-ecommerce/shared';
+import { Op } from 'sequelize';
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/errors/index.js';
 import { multiplyAmount, sumAmounts } from '../../core/utils/money.js';
 import { models } from '../../database/index.js';
@@ -14,6 +15,13 @@ async function getOrCreateCart(userId, { transaction } = {}) {
 }
 
 function toCartResponse(items, products) {
+  const requestedByProduct = new Map();
+  for (const item of items) {
+    requestedByProduct.set(
+      item.productId,
+      (requestedByProduct.get(item.productId) ?? 0) + item.quantity,
+    );
+  }
   const lines = items.map((item) => {
     const product = products.get(item.productId);
     const availableQuantity = product?.isActive ? product.availableQuantity : 0;
@@ -29,7 +37,9 @@ function toCartResponse(items, products) {
       color: item.color,
       lineTotal: multiplyAmount(unitPrice, item.quantity),
       availableQuantity,
-      isAvailable: Boolean(product?.isActive) && availableQuantity >= item.quantity,
+      // Toutes les variantes du produit puisent dans le même stock
+      isAvailable:
+        Boolean(product?.isActive) && availableQuantity >= requestedByProduct.get(item.productId),
     };
   });
   return {
@@ -53,26 +63,20 @@ export async function getCart(userId) {
   return toCartResponse(items, products);
 }
 
-export async function addItem(userId, { productId, quantity, size }) {
+export async function addItem(userId, { productId, quantity, size, color }) {
   const product = await findActiveProduct(productId);
-  assertSizeAllowed(product, size);
+  const variant = { size: size ?? null, color: color ?? null };
+  assertVariantAllowed(product, variant);
   const cart = await getOrCreateCart(userId);
-  const existing = await CartItem.findOne({
-    where: { cartId: cart.id, productId, size: size ?? null, color: null },
-  });
-  const newQuantity = (existing?.quantity ?? 0) + quantity;
-  assertQuantityAllowed(product, newQuantity);
+  const lines = await CartItem.findAll({ where: { cartId: cart.id, productId } });
+  // Le stock est commun à toutes les variantes (tailles, couleurs) d'un même produit.
+  assertQuantityAllowed(product, totalQuantity(lines) + quantity);
 
+  const existing = lines.find((line) => line.size === variant.size && line.color === variant.color);
   if (existing) {
-    await existing.update({ quantity: newQuantity });
+    await existing.update({ quantity: existing.quantity + quantity });
   } else {
-    await CartItem.create({
-      cartId: cart.id,
-      productId,
-      quantity,
-      size: size ?? null,
-      color: null,
-    });
+    await CartItem.create({ cartId: cart.id, productId, quantity, ...variant });
   }
   return getCart(userId);
 }
@@ -80,7 +84,10 @@ export async function addItem(userId, { productId, quantity, size }) {
 export async function updateItem(userId, itemId, { quantity }) {
   const item = await findOwnedItem(userId, itemId);
   const product = await findActiveProduct(item.productId);
-  assertQuantityAllowed(product, quantity);
+  const otherLines = await CartItem.findAll({
+    where: { cartId: item.cartId, productId: item.productId, id: { [Op.ne]: item.id } },
+  });
+  assertQuantityAllowed(product, totalQuantity(otherLines) + quantity);
   await item.update({ quantity });
   return getCart(userId);
 }
@@ -146,9 +153,22 @@ function assertQuantityAllowed(product, quantity) {
   }
 }
 
-function assertSizeAllowed(product, size) {
-  if (product.sizes?.length && !size)
+/** Taille et couleur : obligatoires si le produit en propose, et choisies dans sa liste. */
+function assertVariantAllowed(product, { size, color }) {
+  if (product.sizes?.length && !size) {
     throw new BadRequestError('Veuillez sélectionner une taille', 'PRODUCT_SIZE_REQUIRED');
-  if (size && !product.sizes?.includes(size))
+  }
+  if (size && !product.sizes?.includes(size)) {
     throw new BadRequestError('Taille invalide pour ce produit', 'INVALID_PRODUCT_SIZE');
+  }
+  if (product.colors?.length && !color) {
+    throw new BadRequestError('Veuillez sélectionner une couleur', 'PRODUCT_COLOR_REQUIRED');
+  }
+  if (color && !product.colors?.includes(color)) {
+    throw new BadRequestError('Couleur invalide pour ce produit', 'INVALID_PRODUCT_COLOR');
+  }
+}
+
+function totalQuantity(lines) {
+  return lines.reduce((total, line) => total + line.quantity, 0);
 }

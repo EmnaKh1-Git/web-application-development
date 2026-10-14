@@ -10,7 +10,12 @@ import cartRoutes from './cart.routes.js';
 import ordersRoutes from './orders.routes.js';
 import ordersAdminRoutes from './ordersAdmin.routes.js';
 
-export { findUserOrder, hasUserPurchasedProduct } from './orders.service.js';
+export {
+  findUserOrder,
+  getOrderHistory,
+  hasUserPurchasedProduct,
+  listMyOrders,
+} from './orders.service.js';
 
 export function registerRoutes(apiRouter) {
   apiRouter.use('/cart', cartRoutes);

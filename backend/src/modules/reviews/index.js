@@ -7,6 +7,9 @@
 import { complaintsAdminRouter, complaintsRouter } from './complaints.routes.js';
 import { productReviewsRouter, reviewsRouter } from './reviews.routes.js';
 
+export { getComplaintsForAnalysis } from './complaints.service.js';
+export { getReviewsForAnalysis } from './reviews.service.js';
+
 export function registerRoutes(apiRouter) {
   apiRouter.use('/products/:productId/reviews', productReviewsRouter);
   apiRouter.use('/reviews', reviewsRouter);

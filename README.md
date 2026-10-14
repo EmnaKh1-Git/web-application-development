@@ -4,8 +4,10 @@ Plateforme e-commerce web avec un module d'Intelligence Artificielle, réalisée
 **« IA for Software Engineering »**.
 
 Les utilisateurs peuvent consulter, rechercher, filtrer et trier les produits, gérer leur panier, commander,
-suivre leurs livraisons, donner des avis et déposer des réclamations. Un module d'IA (recommandations,
-chatbot ou assistant) sera branché ensuite, sans modifier le reste de l'application.
+suivre leurs livraisons, donner des avis et déposer des réclamations. L'**intelligence artificielle** est
+présente dans toute l'application : prévision des ruptures de stock, réception intelligente des livraisons,
+recommandations, assistant d'achat, résumé des avis, tri des réclamations, score de risque des commandes,
+segmentation des clients et briefing du jour (voir [Intelligence artificielle](#intelligence-artificielle)).
 
 ## Équipe et modules
 
@@ -16,18 +18,19 @@ chatbot ou assistant) sera branché ensuite, sans modifier le reste de l'applica
 | Panier, commandes & livraison         | Oussama     | `backend/src/modules/orders/`         | `frontend/src/features/cart-orders/`        |
 | Avis & réclamations                   | Hajer       | `backend/src/modules/reviews/`        | `frontend/src/features/reviews-complaints/` |
 | Stock                                 | Yassine     | `backend/src/modules/stock/`          | `frontend/src/features/stock/`              |
-| Intelligence Artificielle (plus tard) | Équipe      | `backend/src/modules/ai/`             | `frontend/src/features/ai/` (à créer)       |
+| Intelligence Artificielle             | Équipe      | `backend/src/modules/ai/`             | `frontend/src/features/ai/`                 |
 
 ## Stack technique
 
-| Partie          | Technologies                                                                |
-| --------------- | --------------------------------------------------------------------------- |
-| Front-End       | React 19, Vite, React Router 7, Tailwind CSS 4, Axios, React Hook Form, Zod |
-| Back-End        | Node.js, Express 5, API REST, JWT, bcrypt, helmet, CORS, rate limiting      |
-| Base de données | MySQL 8, Sequelize (ORM), migrations Umzug                                  |
-| Code partagé    | `@smart-ecommerce/shared` : rôles, permissions, schémas de validation Zod   |
-| Qualité         | Vitest, Supertest, Testing Library, ESLint, Prettier, Husky, commitlint     |
-| CI              | GitHub Actions (lint, tests avec MySQL, build)                              |
+| Partie          | Technologies                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------------- |
+| Front-End       | React 19, Vite, React Router 7, Tailwind CSS 4, Axios, React Hook Form, Zod                         |
+| Back-End        | Node.js, Express 5, API REST, JWT, bcrypt, helmet, CORS, rate limiting                              |
+| IA              | Algorithmes locaux (prévision, recommandation, classification) + Claude (SDK Anthropic, facultatif) |
+| Base de données | MySQL 8, Sequelize (ORM), migrations Umzug                                                          |
+| Code partagé    | `@smart-ecommerce/shared` : rôles, permissions, schémas de validation Zod                           |
+| Qualité         | Vitest, Supertest, Testing Library, ESLint, Prettier, Husky, commitlint                             |
+| CI              | GitHub Actions (lint, tests avec MySQL, build)                                                      |
 
 Tout le projet est en **JavaScript (ES Modules)**.
 
@@ -141,17 +144,45 @@ smart-ecommerce/
 └── .github/                 CI et modèle de pull request
 ```
 
+## Intelligence artificielle
+
+Toutes les fonctions d'IA marchent **sans configuration** grâce aux algorithmes du serveur. Le **Centre IA**
+(back-office, `/admin/ai`) les présente, indique où les voir et affiche la qualité mesurée des modèles.
+
+| Où la voir                                | Fonction                                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| Boutique : accueil, fiche produit, panier | Recommandations expliquées (« Souvent acheté avec… »), tenant compte du stock         |
+| Boutique : bouton « Assistant IA »        | Assistant d'achat : budget, idée cadeau, suivi de commande, questions sur la boutique |
+| Fiche produit                             | « Ce qu'en pensent les clients » : résumé des avis                                    |
+| Stock › Prévisions IA                     | Rupture prévue, quantité à commander, seuil d'alerte conseillé, courbes de prévision  |
+| Stock › Réception intelligente            | Bon de livraison collé (ou photographié avec Claude) → produits reconnus → validation |
+| Réclamations                              | Catégorie et priorité automatiques, brouillon de réponse                              |
+| Commandes                                 | Score de risque expliqué, avant confirmation                                          |
+| Utilisateurs                              | Segment de chaque client (RFM)                                                        |
+| Produits                                  | Catégorie suggérée, description rédigée                                               |
+| Tableau de bord                           | Briefing du jour                                                                      |
+
+**Activer Claude (facultatif)** : ajoutez votre clé dans `backend/.env` (`ANTHROPIC_API_KEY=...`), puis
+redémarrez l'API. Claude ajoute la lecture des photos de bons de livraison, la conversation libre de
+l'assistant et des textes rédigés ; en cas de problème, l'application revient automatiquement à l'IA locale.
+
+Les modèles s'appuient sur 6 mois d'historique de ventes générés par le seeder `sales-history`
+(inclus dans `npm run db:seed`).
+
 ## Documentation
 
 - [Guide de contribution](CONTRIBUTING.md) : workflow Git, conventions, ajout d'une fonctionnalité pas à pas
 - [Architecture](docs/ARCHITECTURE.md) : choix techniques, modules, sécurité, tests, intégration de l'IA
-- [API REST](docs/API.md) : format des réponses, codes d'erreur, permissions, routes prévues
+- [API REST](docs/API.md) : format des réponses, codes d'erreur, permissions, routes de chaque module
 
 ## Avancement
 
 - [x] **Sprint 0 — Fondations** : monorepo, structure Front/Back, MySQL + Sequelize, `core/`, configuration,
       authentification JWT (inscription, connexion, session), rôles et permissions, tests, CI
-- [ ] Sprint 1 — Modules de base (profil, produits, catégories, stock, panier, avis)
-- [ ] Sprint 2 — Commandes, confirmation et stock, livraison, réclamations
+- [x] Sprint 1 — Modules de base : profil et adresses, produits (galerie, tailles, couleurs), catégories,
+      stock (alertes, réapprovisionnement, inventaire, historique), panier, avis
+- [x] Sprint 2 — Commandes (stock déduit à la confirmation), suivi de livraison, réclamations,
+      back-office complet (tableau de bord, utilisateurs, produits, commandes, réclamations, stock)
 - [ ] Sprint 3 — Intégration, qualité, sécurité
-- [ ] Sprint 4 — Module d'Intelligence Artificielle
+- [x] Sprint 4 — Intelligence Artificielle : prévisions, réception intelligente, recommandations, assistant,
+      analyses (avis, réclamations, commandes, clients), Centre IA et évaluation des modèles

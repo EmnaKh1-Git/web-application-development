@@ -64,19 +64,29 @@ export async function createOrderFromCart(user, { addressId, notes }) {
       cartItems.map((item) => item.productId),
       { transaction },
     );
+    // Quantité demandée par produit, toutes variantes (tailles, couleurs) confondues
+    const requestedByProduct = new Map();
+    for (const item of cartItems) {
+      requestedByProduct.set(
+        item.productId,
+        (requestedByProduct.get(item.productId) ?? 0) + item.quantity,
+      );
+    }
     const problems = [];
-    const lines = cartItems.map((item) => {
-      const product = products.get(item.productId);
+    for (const [productId, requested] of requestedByProduct) {
+      const product = products.get(productId);
       if (!product?.isActive) {
-        problems.push({ productId: item.productId, message: "Un produit n'est plus disponible" });
-        return null;
-      }
-      if (product.availableQuantity < item.quantity) {
+        problems.push({ productId, message: "Un produit n'est plus disponible" });
+      } else if (product.availableQuantity < requested) {
         problems.push({
-          productId: product.id,
-          message: `${product.name} : ${product.availableQuantity} disponible(s) pour ${item.quantity} demandé(s)`,
+          productId,
+          message: `${product.name} : ${product.availableQuantity} disponible(s) pour ${requested} demandé(s)`,
         });
       }
+    }
+    const lines = cartItems.map((item) => {
+      const product = products.get(item.productId);
+      if (!product?.isActive) return null;
       return {
         productId: product.id,
         productName: product.name, // copie au moment de la commande
@@ -276,6 +286,43 @@ export async function hasUserPurchasedProduct(userId, productId) {
     ],
   });
   return count > 0;
+}
+
+/**
+ * Historique des commandes pour les analyses du module IA (lecture seule) :
+ * statut, montant, ville de livraison et lignes. Aucune donnée personnelle hors identifiant client.
+ */
+export async function getOrderHistory({ since } = {}) {
+  const orders = await Order.findAll({
+    where: since ? { createdAt: { [Op.gte]: since } } : {},
+    attributes: ['id', 'userId', 'status', 'totalAmount', 'shippingAddress', 'createdAt'],
+    include: [
+      {
+        model: OrderItem,
+        as: 'items',
+        attributes: ['productId', 'productName', 'quantity', 'unitPrice', 'lineTotal'],
+      },
+    ],
+    order: [
+      ['createdAt', 'ASC'],
+      ['id', 'ASC'],
+    ],
+  });
+  return orders.map((order) => ({
+    id: order.id,
+    userId: order.userId,
+    status: order.status,
+    totalAmount: order.totalAmount,
+    city: order.shippingAddress?.city ?? null,
+    createdAt: order.createdAt,
+    items: order.items.map((item) => ({
+      productId: item.productId,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      lineTotal: item.lineTotal,
+    })),
+  }));
 }
 
 /** Commande d'un utilisateur (null si elle n'existe pas ou ne lui appartient pas). */

@@ -18,6 +18,22 @@ export function findUserByEmailWithPassword(email) {
   return User.scope('withPassword').findOne({ where: { email }, include: [INCLUDE_ROLE] });
 }
 
+/** Comptes clients (sans donnée sensible) pour la segmentation du module IA. */
+export async function listCustomers() {
+  const users = await User.findAll({
+    attributes: ['id', 'firstName', 'lastName', 'createdAt', 'isActive'],
+    include: [{ ...INCLUDE_ROLE, where: { name: ROLES.CLIENT } }],
+    order: [['id', 'ASC']],
+  });
+  return users.map((user) => ({
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    createdAt: user.createdAt,
+    isActive: user.isActive,
+  }));
+}
+
 export async function emailExists(email) {
   return (await User.count({ where: { email } })) > 0;
 }

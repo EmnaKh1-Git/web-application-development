@@ -1,14 +1,34 @@
 /**
- * Module Intelligence Artificielle — étape IA (après le Sprint 3)
+ * Module Intelligence Artificielle
  *
- * Le module IA est découplé du reste de l'application :
- * - le Front-End appelle uniquement /api/v1/ai/... (jamais un service IA directement) ;
- * - ce module délègue à un « fournisseur » interchangeable (AI_PROVIDER = mock | http | llm) ;
- * - les clés d'API restent dans le .env du Back-End.
+ * Toutes les fonctions d'IA marchent SANS service externe grâce à des algorithmes locaux
+ * (prévision de la demande, recommandations, classification, scores, segmentation).
+ * Si une clé Anthropic est configurée (backend/.env), Claude les enrichit : lecture de photos,
+ * assistant conversationnel, rédaction de textes. En cas d'indisponibilité, repli automatique.
+ *
+ * Règles : l'IA lit les données via l'API publique des autres modules, en lecture seule ;
+ * elle propose, l'humain décide (aucune donnée n'est modifiée par l'IA).
  * Voir docs/ARCHITECTURE.md, section « Intégration de l'IA ».
  */
+import { EVENTS, subscribe } from '../../core/events/index.js';
+import { invalidateCache } from './ai.cache.js';
+import aiRoutes from './ai.routes.js';
 
-// eslint-disable-next-line no-unused-vars -- utilisé à l'étape IA
 export function registerRoutes(apiRouter) {
-  // apiRouter.use('/ai', aiRoutes); // /ai/recommendations, /ai/chat
+  apiRouter.use('/ai', aiRoutes);
 }
+
+// Les modèles sont recalculés dès que les données dont ils dépendent changent.
+for (const event of [
+  EVENTS.ORDER_CREATED,
+  EVENTS.ORDER_CONFIRMED,
+  EVENTS.ORDER_SHIPPED,
+  EVENTS.ORDER_DELIVERED,
+  EVENTS.ORDER_CANCELLED,
+]) {
+  subscribe(event, () => invalidateCache('orders'));
+}
+subscribe(EVENTS.REVIEW_CHANGED, () =>
+  invalidateCache('reviews', 'catalog', 'orders:model:recommender'),
+);
+subscribe(EVENTS.USER_REGISTERED, () => invalidateCache('customers'));

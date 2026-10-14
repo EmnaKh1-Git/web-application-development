@@ -2,6 +2,7 @@ import { PERMISSIONS } from '@smart-ecommerce/shared';
 import { LogOut, Menu, ShoppingCart, UserRound, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router';
+import { useCart } from '@/features/cart-orders/hooks/useCart';
 import { useAuth } from '@/shared/auth/useAuth';
 import { buttonClassName } from '@/shared/components/ui/buttonStyles';
 import { RoleBadge } from '@/shared/components/ui/RoleBadge';
@@ -15,6 +16,32 @@ const navLinkClassName = ({ isActive }) =>
       ? 'bg-brand-50 text-brand-700'
       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
   );
+
+/** Icône du panier avec le nombre d'articles. */
+function CartLink() {
+  const { data: cart } = useCart();
+  const count = cart?.totalItems ?? 0;
+
+  return (
+    <Link
+      to="/cart"
+      className="relative rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+    >
+      <ShoppingCart aria-hidden="true" className="size-5" />
+      {count > 0 && (
+        <span
+          aria-hidden="true"
+          className="absolute -top-0.5 -right-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-brand-600 px-1 text-xs font-semibold text-white"
+        >
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+      <span className="sr-only">
+        Panier{count > 0 && ` (${count} article${count > 1 ? 's' : ''})`}
+      </span>
+    </Link>
+  );
+}
 
 /** Barre de navigation : les liens affichés dépendent des permissions de l'utilisateur. */
 export function Navbar() {
@@ -56,15 +83,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {hasPermission(PERMISSIONS.CART_MANAGE) && (
-            <Link
-              to="/cart"
-              className="rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            >
-              <ShoppingCart aria-hidden="true" className="size-5" />
-              <span className="sr-only">Panier</span>
-            </Link>
-          )}
+          {hasPermission(PERMISSIONS.CART_MANAGE) && <CartLink />}
 
           {isAuthenticated ? (
             <div className="hidden items-center gap-2 md:flex">

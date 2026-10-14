@@ -56,6 +56,15 @@ const envSchema = z
 
     LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).optional(),
 
+    // Module IA. Sans clé, toutes les fonctions d'IA marchent avec les algorithmes locaux ;
+    // avec une clé Anthropic, Claude les enrichit (lecture de photos, assistant, rédaction).
+    // AI_PROVIDER=local force le mode local même si une clé est présente.
+    AI_PROVIDER: z.enum(['auto', 'local']).default('auto'),
+    ANTHROPIC_API_KEY: optionalString,
+    AI_MODEL: z.string().default('claude-opus-5-5'),
+    AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(30_000),
+    AI_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(60),
+
     // Comptes de démonstration créés par « npm run db:seed » (facultatifs)
     SEED_ADMIN_EMAIL: optionalString,
     SEED_ADMIN_PASSWORD: optionalString,

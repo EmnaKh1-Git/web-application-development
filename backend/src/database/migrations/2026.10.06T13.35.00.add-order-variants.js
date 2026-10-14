@@ -43,9 +43,10 @@ export async function up({ context: queryInterface }) {
 }
 
 export async function down({ context: queryInterface }) {
-  await queryInterface.removeIndex('cart_items', ['cart_id', 'product_id', 'size', 'color']);
+  // D'abord recréer l'ancien index : la clé étrangère cart_id a toujours besoin d'un index.
+  // (La contrainte cart_items_cart_id_fk est équivalente à celle d'origine : elle est conservée.)
   await queryInterface.addIndex('cart_items', ['cart_id', 'product_id'], { unique: true });
-  await queryInterface.removeConstraint('cart_items', 'cart_items_cart_id_fk');
+  await queryInterface.removeIndex('cart_items', ['cart_id', 'product_id', 'size', 'color']);
   await queryInterface.removeColumn('order_items', 'color');
   await queryInterface.removeColumn('order_items', 'size');
   await queryInterface.removeColumn('cart_items', 'color');

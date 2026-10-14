@@ -1,10 +1,11 @@
 import { PERMISSIONS } from '@smart-ecommerce/shared';
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute';
-import { ComplaintsPage } from './pages/ComplaintsPage';
 import { AdminComplaintsPage } from './pages/AdminComplaintsPage';
+import { ComplaintsPage } from './pages/ComplaintsPage';
 
 // Module Avis & Réclamations — Hajer
-// Les avis seront affichés sur la page détail d'un produit (composants exportés par ce module).
+// Les avis sont affichés sur la page détail d'un produit (components/ProductReviews.jsx)
+// et dans « Mon compte » (onglet Mes avis).
 
 /** Routes de la boutique (MainLayout). */
 export const reviewsComplaintsRoutes = [

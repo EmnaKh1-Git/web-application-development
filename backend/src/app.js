@@ -18,7 +18,9 @@ export function createApp() {
   app.use(helmet());
   app.use(cors({ origin: env.corsOrigins }));
 
-  // Corps JSON (taille limitée pour éviter les abus)
+  // Corps JSON (taille limitée pour éviter les abus). Seule exception : la photo d'un bon de
+  // livraison envoyée au module IA (le premier analyseur qui lit le corps l'emporte).
+  app.use('/api/v1/ai/stock/reception', express.json({ limit: '8mb' }));
   app.use(express.json({ limit: '100kb' }));
 
   if (!env.isTest) {

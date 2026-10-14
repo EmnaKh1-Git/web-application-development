@@ -58,6 +58,19 @@ export async function listProductReviews(productId, { page, limit }, viewer) {
   };
 }
 
+/** Avis d'un produit (note et commentaire uniquement) pour le résumé du module IA. */
+export async function getReviewsForAnalysis(productId) {
+  const reviews = await Review.findAll({
+    where: { productId },
+    attributes: ['id', 'rating', 'comment', 'createdAt'],
+    order: [
+      ['createdAt', 'DESC'],
+      ['id', 'DESC'],
+    ],
+  });
+  return reviews.map((review) => review.get({ plain: true }));
+}
+
 export async function listMyReviews(userId) {
   const reviews = await Review.findAll({
     where: { userId },

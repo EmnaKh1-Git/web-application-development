@@ -174,6 +174,19 @@ export async function adjustStock(productId, { quantity, lowStockThreshold, reas
 
 /* ─────────────── API publique (utilisée par les autres modules) ─────────────── */
 
+/** Niveau de stock de tous les produits (module IA) : Map productId → { quantity, lowStockThreshold }. */
+export async function getStockLevels() {
+  const stocks = await Stock.findAll({
+    attributes: ['productId', 'quantity', 'lowStockThreshold'],
+  });
+  return new Map(
+    stocks.map((stock) => [
+      stock.productId,
+      { quantity: stock.quantity, lowStockThreshold: stock.lowStockThreshold },
+    ]),
+  );
+}
+
 /** Quantités disponibles : Map productId → { quantity, lowStockThreshold }. */
 export async function getStocksByProductIds(productIds, { transaction } = {}) {
   const stocks = await Stock.findAll({ where: { productId: productIds }, transaction });
@@ -203,7 +216,9 @@ export async function createStockForProduct(
  *
  * @param {{ productId: number, productName: string, quantity: number }[]} items
  */
-export async function decreaseStockForOrder(orderId, items, { transaction, userId }) {
+export async function decreaseStockForOrder(orderId, orderItems, { transaction, userId }) {
+  // Plusieurs lignes peuvent viser le même produit (tailles, couleurs) : un seul stock à contrôler.
+  const items = groupByProduct(orderItems);
   const stocks = await lockStocks(items, transaction);
 
   const shortages = items
@@ -242,7 +257,8 @@ export async function decreaseStockForOrder(orderId, items, { transaction, userI
 }
 
 /** Remet en stock les produits d'une commande confirmée puis annulée. */
-export async function restoreStockForOrder(orderId, items, { transaction, userId }) {
+export async function restoreStockForOrder(orderId, orderItems, { transaction, userId }) {
+  const items = groupByProduct(orderItems);
   const stocks = await lockStocks(items, transaction);
   for (const item of items) {
     const stock = stocks.get(item.productId);
@@ -262,6 +278,19 @@ export async function restoreStockForOrder(orderId, items, { transaction, userId
 }
 
 /* ─────────────────────────── Fonctions internes ─────────────────────────── */
+
+/** Additionne les quantités des lignes qui concernent le même produit. */
+function groupByProduct(items) {
+  const grouped = new Map();
+  for (const item of items) {
+    const current = grouped.get(item.productId);
+    grouped.set(item.productId, {
+      ...item,
+      quantity: (current?.quantity ?? 0) + item.quantity,
+    });
+  }
+  return [...grouped.values()];
+}
 
 async function findStockForUpdate(productId, transaction) {
   const stock = await Stock.findOne({

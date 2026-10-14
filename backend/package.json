@@ -25,6 +25,7 @@
     "db:reset": "node src/database/reset.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@smart-ecommerce/shared": "^0.1.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

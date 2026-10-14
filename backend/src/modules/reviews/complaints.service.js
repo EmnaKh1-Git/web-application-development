@@ -79,6 +79,16 @@ export async function getComplaint(complaintId, viewer) {
   return toComplaintResponse(complaint);
 }
 
+/** Toutes les réclamations (ou certaines) pour l'analyse automatique du module IA. */
+export async function getComplaintsForAnalysis({ ids } = {}) {
+  const complaints = await Complaint.findAll({
+    where: ids ? { id: ids } : {},
+    include: [customerInclude, handlerInclude],
+    order: [['createdAt', 'ASC']],
+  });
+  return complaints.map(toComplaintResponse);
+}
+
 export async function listAllComplaints({ page, limit, status, search }) {
   const where = { ...(status && { status }) };
   if (search) {

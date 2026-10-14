@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { authApi } from '@/features/auth/api/authApi';
 import { onSessionExpired } from '@/shared/api/httpClient';
@@ -6,19 +7,31 @@ import { tokenStorage } from './tokenStorage';
 
 /** Gère la session de l'utilisateur (connexion, inscription, déconnexion, restauration). */
 export function AuthProvider({ children }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState(() => (tokenStorage.get() ? 'loading' : 'anonymous'));
 
-  const startSession = useCallback(({ token, user: sessionUser }) => {
-    tokenStorage.set(token);
-    setUser(sessionUser);
-    setStatus('authenticated');
-  }, []);
+  const startSession = useCallback(
+    ({ token, user: sessionUser }) => {
+      tokenStorage.set(token);
+      // Les données en cache (panier, commandes...) appartenaient à la session précédente
+      queryClient.clear();
+      setUser(sessionUser);
+      setStatus('authenticated');
+    },
+    [queryClient],
+  );
 
   const logout = useCallback(() => {
     tokenStorage.clear();
+    queryClient.clear();
     setUser(null);
     setStatus('anonymous');
+  }, [queryClient]);
+
+  /** Met à jour l'utilisateur affiché (ex. après modification du profil). */
+  const updateUser = useCallback((changes) => {
+    setUser((current) => current && { ...current, ...changes });
   }, []);
 
   // Au chargement de l'application : restaure la session si un jeton est enregistré.
@@ -63,8 +76,8 @@ export function AuthProvider({ children }) {
   );
 
   const value = useMemo(
-    () => createAuthValue({ user, status, login, register, logout }),
-    [user, status, login, register, logout],
+    () => createAuthValue({ user, status, login, register, logout, updateUser }),
+    [user, status, login, register, logout, updateUser],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

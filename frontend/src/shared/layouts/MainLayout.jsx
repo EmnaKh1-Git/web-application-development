@@ -1,4 +1,5 @@
 import { Outlet, ScrollRestoration } from 'react-router';
+import { ShoppingAssistant } from '@/features/ai/components/ShoppingAssistant';
 import { Navbar } from '@/shared/components/layout/Navbar';
 
 /** Mise en page de la boutique (pages publiques et espace client). */
@@ -15,6 +16,7 @@ export function MainLayout() {
           © {new Date().getFullYear()} SmartE-Commerce · Projet « IA for Software Engineering »
         </div>
       </footer>
+      <ShoppingAssistant />
     </div>
   );
 }

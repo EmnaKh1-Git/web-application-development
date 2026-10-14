@@ -23,6 +23,12 @@ export const apiRateLimiter = createRateLimiter(
   'Trop de requêtes. Réessayez dans quelques minutes.',
 );
 
+/** Limite des fonctions d'IA coûteuses (appels au modèle de langage). */
+export const aiRateLimiter = createRateLimiter(
+  env.AI_RATE_LIMIT_MAX,
+  'Trop de demandes à l’assistant IA. Réessayez dans quelques minutes.',
+);
+
 /** Limite stricte pour la connexion et l'inscription. */
 export const authRateLimiter = createRateLimiter(
   env.AUTH_RATE_LIMIT_MAX,

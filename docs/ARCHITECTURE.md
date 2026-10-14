@@ -207,24 +207,45 @@ de chaque exécution, et vidée avant chaque test (les rôles sont conservés). 
 `createTestUser`, `createAuthenticatedUser` (`backend/tests/helpers/factories.js`) et
 `renderWithProviders` (`frontend/src/test/renderWithProviders.jsx`).
 
-## 10. Intégration de l'IA (prévue)
+## 10. Intelligence artificielle (`modules/ai`)
 
-Le choix (recommandation, chatbot ou assistant) sera fait plus tard ; l'architecture le permet sans
-toucher aux autres modules :
+L'IA est présente dans tous les modules, sans dépendre d'un service externe :
 
 ```
-Front-End ──▶ /api/v1/ai/... ──▶ modules/ai/ai.service ──▶ AIProvider (interface)
-                                                            ├── MockProvider  (réponses fixes, tests)
-                                                            ├── HttpAIProvider (service Python/Node dédié)
-                                                            └── LLMProvider   (API d'un modèle de langage)
+Front-End ──▶ /api/v1/ai/... ──▶ services/ (orchestration, cache)
+                                   ├── engine/   algorithmes locaux, fonctions pures testées unitairement
+                                   │             (prévision, recommandations, bayésien naïf, réclamations,
+                                   │              score de risque, RFM, réception, assistant, résumé d'avis)
+                                   └── llm/claude.js   Claude (SDK officiel), facultatif
+                ▲
+     données lues via l'API publique des autres modules (getOrderHistory, getCatalogSnapshot...)
 ```
 
-- Fournisseur choisi par variable d'environnement (`AI_PROVIDER=mock|http|llm`), clés d'API dans le `.env`
-  du Back-End uniquement.
-- Routes prévues : `GET /ai/recommendations?productId=`, `POST /ai/chat` (avec `optionalAuthenticate`).
-- **Robustesse** : délai maximal + solution de repli (ex. produits populaires) : l'application fonctionne
-  même si l'IA est indisponible.
-- **Données** : l'IA ne lit jamais la base directement ; le Back-End lui transmet uniquement le nécessaire
-  (catalogue filtré, historique `user_events`, commandes de l'utilisateur connecté uniquement).
-- Les événements (`product.viewed`, `order.confirmed`...) alimentent dès maintenant l'historique utile aux
-  recommandations.
+| Module       | Fonction d'IA                                | Technique                                                                   |
+| ------------ | -------------------------------------------- | --------------------------------------------------------------------------- |
+| Stock        | Prévision des ruptures, réassorts, seuils    | Croston (SBA) / lissage exponentiel, profil hebdomadaire, stock de sécurité |
+| Stock        | Réception intelligente d'un bon de livraison | Analyse du texte + appariement flou (trigrammes) ; photo : Claude (vision)  |
+| Produits     | Recommandations (accueil, fiche, panier)     | Co-achats + TF-IDF + popularité bayésienne, selon le stock                  |
+| Produits     | Catégorie suggérée, description rédigée      | Bayésien naïf ; Claude ou gabarit                                           |
+| Avis         | Résumé des avis                              | Aspects + polarité (lexique, négation) ; Claude                             |
+| Réclamations | Catégorie, priorité, brouillon de réponse    | Mots-clés pondérés, ton, ancienneté ; Claude ou gabarit                     |
+| Commandes    | Score de risque                              | Détection d'anomalies explicable (z-score, ville, quantités...)             |
+| Utilisateurs | Segmentation des clients                     | RFM + baisse du rythme d'achat                                              |
+| Boutique     | Assistant d'achat                            | Compréhension locale (budget, rayon, intention) ; Claude + outils           |
+| Back-office  | Briefing du jour, Centre IA                  | Synthèse des constats ; évaluation hors échantillon des modèles             |
+
+- **Claude facultatif** : `ANTHROPIC_API_KEY` dans `backend/.env` (jamais côté Front). Réponses JSON par
+  _structured outputs_, effort « low », repli serveur en cas de refus (`fallbacks: "default"`), puis repli
+  local automatique (`withClaude()`) : l'application fonctionne toujours, même sans réseau.
+  `AI_PROVIDER=local` force le mode local ; les tests n'appellent jamais Claude.
+- **L'IA propose, l'humain décide** : aucune route `/ai` ne modifie de données. Les actions (réassort,
+  réponse à une réclamation, confirmation d'une commande) passent par les routes habituelles du module.
+- **Données** : lecture seule via l'API publique des autres modules. Seules des données utiles et
+  minimales sont transmises à Claude (jamais d'email ni d'adresse ; prénom du client pour une réponse).
+- **Cache** : les modèles (prévision, recommandations) sont recalculés après chaque événement de commande
+  (`order.*`) ou d'avis (`review.changed`), sinon au plus toutes les 5 minutes ; le stock est lu en direct.
+- **Évaluation** (Centre IA, `GET /ai/evaluation`) : backtest des prévisions sur 28 jours contre une
+  moyenne naïve (WAPE), taux de réussite des recommandations contre la popularité, précision du
+  classifieur de catégories (leave-one-out) et du tri des réclamations (jeu de test étiqueté).
+- **Données de démonstration** : le seeder `sales-history` génère 6 mois de ventes réalistes (saisonnalité
+  hebdomadaire, tendances, promotions, co-achats, réassorts) en gardant l'historique du stock cohérent.

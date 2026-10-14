@@ -1,151 +1,169 @@
-import { useEffect, useState } from 'react';
-import { Edit, Plus, Trash2 } from 'lucide-react';
-import { productsApi } from '../api/productsApi';
-import { Alert } from '@/shared/components/ui/Alert';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { categorySchema } from '@smart-ecommerce/shared';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Pencil, Plus, Tags, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link } from 'react-router';
+import { QueryError } from '@/shared/components/QueryError';
 import { Button } from '@/shared/components/ui/Button';
+import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
+import { Dialog } from '@/shared/components/ui/Dialog';
+import { EmptyState } from '@/shared/components/ui/EmptyState';
+import { PageHeader } from '@/shared/components/ui/PageHeader';
+import { PageSpinner } from '@/shared/components/ui/Spinner';
+import { TextAreaField } from '@/shared/components/ui/TextAreaField';
 import { TextField } from '@/shared/components/ui/TextField';
+import { applyServerValidationErrors } from '@/shared/utils/forms';
+import { notifyError, notifySuccess } from '@/shared/utils/notify';
+import { categoriesApi, productKeys } from '../api/productsApi';
 
+/** Back-office : organisation du catalogue en catégories. */
 export function AdminCategoriesPage() {
-  const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState({ name: '', description: '' });
-  const [editing, setEditing] = useState(null);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const load = async () => {
-    try {
-      setCategories((await productsApi.categories()).data);
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  };
-  useEffect(() => {
-    let cancelled = false;
-    const fetchCategories = async () => {
-      try {
-        const response = await productsApi.categories();
-        if (!cancelled) setCategories(response.data);
-      } catch (requestError) {
-        if (!cancelled) setError(requestError.message);
-      }
-    };
-    fetchCategories();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  const submit = async (event) => {
-    event.preventDefault();
-    setError('');
-    try {
-      if (editing) await productsApi.updateCategory(editing, form);
-      else await productsApi.createCategory(form);
-      setMessage(editing ? 'Catégorie modifiée.' : 'Catégorie ajoutée.');
-      setForm({ name: '', description: '' });
-      setEditing(null);
-      await load();
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  };
-  const remove = async (id) => {
-    if (!window.confirm('Supprimer cette catégorie ?')) return;
-    try {
-      await productsApi.deleteCategory(id);
-      setMessage('Catégorie supprimée.');
-      await load();
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  };
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(null); // null = fermé, {} = création, catégorie = modification
+  const [deleting, setDeleting] = useState(null);
+  const query = useQuery({ queryKey: productKeys.categories, queryFn: categoriesApi.list });
+  const deleteMutation = useMutation({
+    mutationFn: (category) => categoriesApi.remove(category.id),
+    onSuccess: async (_result, category) => {
+      notifySuccess('Catégorie supprimée', category.name);
+      setDeleting(null);
+      await queryClient.invalidateQueries({ queryKey: productKeys.categories });
+    },
+    onError: (error) => {
+      setDeleting(null);
+      notifyError(error);
+    },
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Gestion des catégories</h1>
-        <p className="mt-1 text-slate-600">Organisez le catalogue et ses rayons.</p>
-      </div>
-      {error && (
-        <Alert variant="error" title="Erreur">
-          {error}
-        </Alert>
-      )}
-      {message && <Alert variant="success">{message}</Alert>}
-      <form
-        onSubmit={submit}
-        className="grid gap-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:grid-cols-2"
-      >
-        <h2 className="text-lg font-semibold md:col-span-2">
-          {editing ? 'Modifier la catégorie' : 'Ajouter une catégorie'}
-        </h2>
-        <TextField
-          label="Nom"
-          value={form.name}
-          onChange={(event) => setForm({ ...form, name: event.target.value })}
-          required
-        />
-        <TextField
-          label="Description"
-          value={form.description}
-          onChange={(event) => setForm({ ...form, description: event.target.value })}
-        />
-        <div className="flex gap-2 md:col-span-2">
-          <Button type="submit">
-            <Plus className="size-4" />
-            {editing ? 'Enregistrer' : 'Ajouter'}
+      <PageHeader
+        title="Catégories"
+        description="Une catégorie ne peut être supprimée que si elle ne contient plus de produit."
+        actions={
+          <Button onClick={() => setEditing({})}>
+            <Plus aria-hidden="true" className="size-4" />
+            Nouvelle catégorie
           </Button>
-          {editing && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setEditing(null);
-                setForm({ name: '', description: '' });
-              }}
+        }
+      />
+
+      {query.isPending ? (
+        <PageSpinner />
+      ) : query.isError ? (
+        <QueryError error={query.error} onRetry={query.refetch} />
+      ) : query.data.length === 0 ? (
+        <EmptyState
+          icon={Tags}
+          title="Aucune catégorie"
+          description="Créez la première catégorie."
+        />
+      ) : (
+        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {query.data.map((category) => (
+            <li
+              key={category.id}
+              className="flex flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
             >
-              Annuler
-            </Button>
-          )}
-        </div>
-      </form>
-      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b text-slate-500">
-              <th className="p-3">Nom</th>
-              <th className="p-3">Description</th>
-              <th className="p-3">Produits</th>
-              <th className="p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.map((category) => (
-              <tr key={category.id} className="border-b last:border-0">
-                <td className="p-3 font-medium">{category.name}</td>
-                <td className="p-3">{category.description || '—'}</td>
-                <td className="p-3">{category.productCount}</td>
-                <td className="flex gap-2 p-3">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setEditing(category.id);
-                      setForm({ name: category.name, description: category.description || '' });
-                    }}
-                  >
-                    <Edit className="size-4" />
-                    Modifier
-                  </Button>
-                  {category.productCount === 0 && (
-                    <Button size="sm" variant="danger" onClick={() => remove(category.id)}>
-                      <Trash2 className="size-4" />
-                      Supprimer
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="font-semibold">{category.name}</h2>
+                <Link
+                  to={`/admin/products?categoryId=${category.id}`}
+                  className="shrink-0 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                >
+                  {category.productCount} produit(s)
+                </Link>
+              </div>
+              <p className="mt-2 flex-1 text-sm text-slate-600">
+                {category.description || <span className="text-slate-400">Sans description</span>}
+              </p>
+              <div className="mt-4 flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setEditing(category)}>
+                  <Pencil aria-hidden="true" className="size-4" />
+                  Modifier
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setDeleting(category)}>
+                  <Trash2 aria-hidden="true" className="size-4" />
+                  Supprimer
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Dialog
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing?.id ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+      >
+        <CategoryForm category={editing?.id ? editing : null} onClose={() => setEditing(null)} />
+      </Dialog>
+      <ConfirmDialog
+        open={deleting !== null}
+        title={`Supprimer « ${deleting?.name} » ?`}
+        confirmLabel="Supprimer"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate(deleting)}
+        onClose={() => setDeleting(null)}
+      >
+        {deleting?.productCount > 0
+          ? `Cette catégorie contient encore ${deleting.productCount} produit(s) : déplacez-les d’abord.`
+          : 'Cette action est définitive.'}
+      </ConfirmDialog>
     </div>
+  );
+}
+
+function CategoryForm({ category, onClose }) {
+  const queryClient = useQueryClient();
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(categorySchema),
+    defaultValues: { name: category?.name ?? '', description: category?.description ?? '' },
+  });
+  const mutation = useMutation({
+    mutationFn: (values) =>
+      category ? categoriesApi.update(category.id, values) : categoriesApi.create(values),
+    onSuccess: async (saved) => {
+      notifySuccess(category ? 'Catégorie modifiée' : 'Catégorie créée', saved.name);
+      await queryClient.invalidateQueries({ queryKey: productKeys.categories });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      onClose();
+    },
+    onError: (error) => {
+      if (!applyServerValidationErrors(error, setError)) notifyError(error);
+    },
+  });
+
+  return (
+    <form
+      noValidate
+      onSubmit={handleSubmit((values) => mutation.mutate(values))}
+      className="space-y-4"
+    >
+      <TextField data-autofocus label="Nom" error={errors.name?.message} {...register('name')} />
+      <TextAreaField
+        label="Description (facultatif)"
+        rows={3}
+        error={errors.description?.message}
+        {...register('description')}
+      />
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={onClose}>
+          Annuler
+        </Button>
+        <Button type="submit" isLoading={mutation.isPending}>
+          Enregistrer
+        </Button>
+      </div>
+    </form>
   );
 }

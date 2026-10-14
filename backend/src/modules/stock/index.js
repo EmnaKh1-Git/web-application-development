@@ -11,6 +11,7 @@ import stockRoutes from './stock.routes.js';
 export {
   createStockForProduct,
   decreaseStockForOrder,
+  getStockLevels,
   getStocksByProductIds,
   restoreStockForOrder,
 } from './stock.service.js';

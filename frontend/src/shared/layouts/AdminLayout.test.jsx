@@ -9,10 +9,10 @@ const sidebarLinks = () =>
     .map((link) => link.textContent);
 
 describe('Back-office', () => {
-  it('ne montre au STOCK_MANAGER que la section Stock', () => {
+  it('ne montre au STOCK_MANAGER que le Stock et le Centre IA', () => {
     renderWithProviders({ routes, initialPath: '/admin', user: TEST_USERS.STOCK_MANAGER });
 
-    expect(sidebarLinks()).toEqual(['Tableau de bord', 'Stock']);
+    expect(sidebarLinks()).toEqual(['Tableau de bord', 'Stock', 'Centre IA']);
   });
 
   it('montre toutes les sections à l’ADMIN', () => {
@@ -26,6 +26,7 @@ describe('Back-office', () => {
       'Commandes',
       'Réclamations',
       'Stock',
+      'Centre IA',
     ]);
   });
 

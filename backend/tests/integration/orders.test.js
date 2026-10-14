@@ -183,3 +183,106 @@ describe('Cycle de vie d’une commande', () => {
     });
   });
 });
+
+describe('Variantes (tailles et couleurs)', () => {
+  let tshirt;
+  const addToCart = (body) =>
+    request(app).post('/api/v1/cart/items').set('Authorization', client.authHeader).send(body);
+
+  beforeEach(async () => {
+    tshirt = await createTestProduct({
+      name: 'T-shirt',
+      quantity: 5,
+      sizes: ['S', 'M'],
+      colors: ['Noir', 'Blanc'],
+    });
+  });
+
+  it('exige une taille et une couleur proposées par le produit', async () => {
+    const withoutColor = await addToCart({ productId: tshirt.id, size: 'S' });
+    const unknownColor = await addToCart({ productId: tshirt.id, size: 'S', color: 'Vert' });
+
+    expect(withoutColor.status).toBe(400);
+    expect(withoutColor.body.error.code).toBe('PRODUCT_COLOR_REQUIRED');
+    expect(unknownColor.status).toBe(400);
+    expect(unknownColor.body.error.code).toBe('INVALID_PRODUCT_COLOR');
+  });
+
+  it('crée une ligne par variante et regroupe les ajouts d’une même variante', async () => {
+    await addToCart({ productId: tshirt.id, size: 'S', color: 'Noir' });
+    await addToCart({ productId: tshirt.id, size: 'M', color: 'Blanc', quantity: 2 });
+    const res = await addToCart({ productId: tshirt.id, size: 'S', color: 'Noir' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.items).toMatchObject([
+      { size: 'S', color: 'Noir', quantity: 2 },
+      { size: 'M', color: 'Blanc', quantity: 2 },
+    ]);
+  });
+
+  it('partage le stock entre toutes les variantes d’un produit', async () => {
+    await addToCart({ productId: tshirt.id, size: 'S', color: 'Noir', quantity: 3 });
+    const tooMany = await addToCart({
+      productId: tshirt.id,
+      size: 'M',
+      color: 'Blanc',
+      quantity: 3,
+    });
+    const cart = await addToCart({ productId: tshirt.id, size: 'M', color: 'Blanc', quantity: 2 });
+    const line = cart.body.data.items.find((item) => item.size === 'M');
+    const update = await request(app)
+      .patch(`/api/v1/cart/items/${line.id}`)
+      .set('Authorization', client.authHeader)
+      .send({ quantity: 3 });
+
+    expect(tooMany.status).toBe(409);
+    expect(tooMany.body.error.code).toBe('INSUFFICIENT_STOCK');
+    expect(cart.status).toBe(200);
+    expect(update.status).toBe(409);
+  });
+
+  it('refuse la commande si le total des variantes dépasse le stock', async () => {
+    const address = await createTestAddress(client.user.id);
+    await addToCart({ productId: tshirt.id, size: 'S', color: 'Noir', quantity: 3 });
+    await addToCart({ productId: tshirt.id, size: 'M', color: 'Blanc', quantity: 2 });
+    await models.Stock.update({ quantity: 4 }, { where: { productId: tshirt.id } });
+
+    const res = await request(app)
+      .post('/api/v1/orders')
+      .set('Authorization', client.authHeader)
+      .send({ addressId: address.id });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('CART_UNAVAILABLE_ITEMS');
+    expect(res.body.error.details[0].message).toContain('4 disponible(s) pour 5 demandé(s)');
+  });
+
+  it('déduit puis restaure le stock en un seul mouvement par produit', async () => {
+    const order = await placeOrder(
+      app,
+      client,
+      [
+        { productId: tshirt.id, size: 'S', color: 'Noir', quantity: 2 },
+        { productId: tshirt.id, size: 'M', color: 'Blanc', quantity: 3 },
+      ],
+      { statuses: [{ status: ORDER_STATUS.CONFIRMED, admin }] },
+    );
+    expect(order.items).toMatchObject([
+      { size: 'S', color: 'Noir', quantity: 2 },
+      { size: 'M', color: 'Blanc', quantity: 3 },
+    ]);
+    expect(await stockOf(tshirt.id)).toBe(0);
+
+    await setStatus(order.id, ORDER_STATUS.CANCELLED, admin);
+
+    expect(await stockOf(tshirt.id)).toBe(5);
+    const movements = await models.StockMovement.findAll({
+      where: { orderId: order.id },
+      order: [['id', 'ASC']],
+    });
+    expect(movements.map(({ type, quantityChange }) => ({ type, quantityChange }))).toEqual([
+      { type: 'OUT', quantityChange: -5 },
+      { type: 'RETURN', quantityChange: 5 },
+    ]);
+  });
+});
