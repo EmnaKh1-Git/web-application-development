@@ -1,0 +1,48 @@
+{
+  "name": "@smart-ecommerce/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API REST SmartE-Commerce (Node.js + Express + Sequelize/MySQL)",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:create": "node src/database/create-database.js",
+    "db:migrate": "node src/database/migrate.js up",
+    "db:migrate:undo": "node src/database/migrate.js down",
+    "db:migrate:status": "node src/database/migrate.js status",
+    "db:migration:create": "node src/database/migrate.js create --name",
+    "db:seed": "node src/database/seed.js up",
+    "db:seed:undo": "node src/database/seed.js down --to 0",
+    "db:seed:status": "node src/database/seed.js status",
+    "db:seeder:create": "node src/database/seed.js create --name",
+    "db:reset": "node src/database/reset.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@smart-ecommerce/shared": "^0.1.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.12.1",
+    "mysql2": "^3.24.5",
+    "sequelize": "^6.37.8",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
+    "umzug": "^3.8.3"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.3",
+    "supertest": "^7.3.1",
+    "vitest": "^5.0.3"
+  }
+}
