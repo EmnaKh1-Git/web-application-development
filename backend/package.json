@@ -8,10 +8,13 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "vitest run && npm run test:jest",
-    "test:unit": "vitest run --project unit && npm run test:jest",
-    "test:integration": "vitest run --project integration",
+    "test": "vitest run && npm run test:jest && npm run test:acceptance",
+    "test:unit": "vitest run --project unit && npm run test:jest -- --selectProjects unit",
+    "test:integration": "vitest run --project integration && npm run test:jest -- --selectProjects integration",
     "test:jest": "node --experimental-vm-modules --disable-warning=ExperimentalWarning ../node_modules/jest/bin/jest.js",
+    "test:acceptance": "cucumber-js",
+    "test:system": "node tests/system/products/run-system-tests.js",
+    "test:load": "node tests/system/products/run-system-tests.js --load",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "db:create": "node src/database/create-database.js",
@@ -42,8 +45,10 @@
     "umzug": "^3.8.3"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^13.3.0",
     "@vitest/coverage-v8": "^5.0.3",
     "jest": "^30.5.2",
+    "newman": "^6.2.3",
     "supertest": "^7.3.1",
     "vitest": "^5.0.3"
   }

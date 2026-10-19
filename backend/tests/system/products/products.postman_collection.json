@@ -1,0 +1,156 @@
+{
+  "info": {
+    "name": "SmartE-Commerce — Produits (Emna) — tests système",
+    "description": "Tests SYSTÈME du module Produits : recherche, filtres, tri et pagination sur l'application complète (API + MySQL). Préparer : catalogue fictif dans la base de TEST (run-system-tests.js). Agir : la requête. Vérifier : l'onglet Tests de chaque requête. Variable d'environnement : baseUrl.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [{ "key": "modeCategoryId", "value": "" }],
+  "item": [
+    {
+      "name": "ST-01 — Recherche « tennis » triée par prix croissant (nominal)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/products?search=tennis&sort=price_asc" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Vérifier : 200, uniquement des produits actifs contenant « tennis », prix croissants, total cohérent",
+              "const body = pm.response.json();",
+              "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+              "pm.test('Au moins un résultat', () => pm.expect(body.data.length).to.be.above(0));",
+              "pm.test('Chaque résultat contient « tennis »', () => {",
+              "  body.data.forEach((product) => pm.expect(`${product.name} ${product.description}`.toLowerCase()).to.include('tennis'));",
+              "});",
+              "pm.test('Aucun produit désactivé', () => body.data.forEach((product) => pm.expect(product.isActive).to.equal(true)));",
+              "pm.test('Prix croissants', () => {",
+              "  const prices = body.data.map((product) => product.price);",
+              "  pm.expect(prices).to.eql([...prices].sort((a, b) => a - b));",
+              "});",
+              "pm.test('Total annoncé (meta.total) cohérent', () => pm.expect(body.meta.total).to.equal(body.data.length));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ST-02 — Filtres combinés : rayon Mode, 50 à 300 DT, en stock (nominal)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/products?categoryId={{modeCategoryId}}&minPrice=50&maxPrice=300&inStock=true"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Préparer : identifiant du rayon « Mode », lu dans la liste des catégories",
+              "pm.sendRequest(pm.variables.replaceIn('{{baseUrl}}/categories'), (error, response) => {",
+              "  const mode = response.json().data.find((category) => category.name === 'Mode');",
+              "  pm.collectionVariables.set('modeCategoryId', mode ? String(mode.id) : '0');",
+              "});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Vérifier : tous les produits respectent les trois filtres à la fois",
+              "const body = pm.response.json();",
+              "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+              "pm.test('Au moins un résultat', () => pm.expect(body.data.length).to.be.above(0));",
+              "pm.test('Rayon Mode uniquement', () => body.data.forEach((product) => pm.expect(product.category.name).to.equal('Mode')));",
+              "pm.test('Prix entre 50 et 300 DT', () => body.data.forEach((product) => pm.expect(product.price).to.be.within(50, 300)));",
+              "pm.test('En stock uniquement', () => body.data.forEach((product) => pm.expect(product.stock.inStock).to.equal(true)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ST-03 — Fourchette de prix inversée (erreur)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/products?minPrice=500&maxPrice=100" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Vérifier : la requête est refusée avec un message clair sur le champ maxPrice",
+              "const body = pm.response.json();",
+              "pm.test('Statut 400', () => pm.response.to.have.status(400));",
+              "pm.test('Code VALIDATION_ERROR', () => pm.expect(body.error.code).to.equal('VALIDATION_ERROR'));",
+              "pm.test('Message sur le prix maximum', () => {",
+              "  const detail = body.error.details.find((item) => item.field === 'maxPrice');",
+              "  pm.expect(detail.message).to.equal('Le prix maximum doit être supérieur au prix minimum');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ST-04a — Pagination : limit=100, la valeur maximale (limite)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/products?limit=100" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Vérifier : 100 est la plus grande taille de page acceptée",
+              "const body = pm.response.json();",
+              "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+              "pm.test('meta.limit vaut 100', () => pm.expect(body.meta.limit).to.equal(100));",
+              "pm.test('Au plus 100 produits', () => pm.expect(body.data.length).to.be.at.most(100));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ST-04b — Pagination : limit=101, juste au-dessus du maximum (limite)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/products?limit=101" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Vérifier : 101 est refusé, l'erreur porte sur le champ limit",
+              "const body = pm.response.json();",
+              "pm.test('Statut 400', () => pm.response.to.have.status(400));",
+              "pm.test('Erreur sur le champ limit', () => pm.expect(body.error.details.map((detail) => detail.field)).to.include('limit'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ST-04c — Pagination : page au-delà de la dernière (limite)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/products?page=999&limit=10" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Vérifier : liste vide, mais meta reste juste (total et nombre de pages)",
+              "const body = pm.response.json();",
+              "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+              "pm.test('Liste vide', () => pm.expect(body.data).to.eql([]));",
+              "pm.test('Meta cohérente', () => {",
+              "  pm.expect(body.meta.page).to.equal(999);",
+              "  pm.expect(body.meta.totalPages).to.equal(Math.ceil(body.meta.total / 10));",
+              "  pm.expect(body.meta.totalPages).to.be.below(999);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

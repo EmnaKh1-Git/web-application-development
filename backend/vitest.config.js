@@ -31,6 +31,8 @@ export default defineConfig({
           // Tests d'intégration : API complète + base MySQL de test (DB_NAME_TEST du .env)
           name: 'integration',
           include: ['tests/integration/**/*.test.js'],
+          // Module Utilisateurs : tests d'intégration écrits avec Jest + Supertest (jest.config.js)
+          exclude: [...configDefaults.exclude, 'tests/integration/users/**'],
           env: { NODE_ENV: 'test', JWT_SECRET: TEST_JWT_SECRET, BCRYPT_SALT_ROUNDS: '4' },
           globalSetup: ['tests/setup/integration.global-setup.js'],
           setupFiles: ['tests/setup/integration.setup.js'],

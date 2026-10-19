@@ -5,6 +5,10 @@ node_modules/
 dist/
 build/
 coverage/
+# Rapports des tests (Playwright, Cucumber)
+playwright-report/
+test-results/
+backend/reports/
 
 # Variables d'environnement : JAMAIS dans Git (seuls les .env.example sont versionnés)
 .env

@@ -38,9 +38,15 @@ export default defineConfig([
     },
   },
 
-  // Back-End, scripts et fichiers de configuration (Node.js)
+  // Back-End, scripts, tests de bout en bout et fichiers de configuration (Node.js)
   {
-    files: ['backend/**/*.js', 'scripts/**/*.js', '*.config.js', 'frontend/vite.config.js'],
+    files: [
+      'backend/**/*.js',
+      'scripts/**/*.js',
+      'tests/**/*.js',
+      '*.config.js',
+      'frontend/vite.config.js',
+    ],
     languageOptions: { globals: globals.node },
   },
   {

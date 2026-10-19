@@ -203,6 +203,21 @@ La matrice est définie une seule fois dans `shared/src/constants/permissions.js
 | Code partagé                      | Vitest                     | `shared/tests/`              |
 | Composants et pages               | Vitest + Testing Library   | `frontend/src/**/*.test.jsx` |
 
+**Tests imposés par le cours** (un type de test par module, 5 scénarios chacun, pattern AAA) :
+
+| Module (responsable)                   | Type de test     | Outil                | Emplacement                        | Commande                             |
+| -------------------------------------- | ---------------- | -------------------- | ---------------------------------- | ------------------------------------ |
+| Stock (Yassine)                        | Unitaire         | Jest                 | `backend/tests/unit/stock/`        | `npm run test:jest -w backend`       |
+| Utilisateurs (Fares)                   | Intégration      | Jest + Supertest     | `backend/tests/integration/users/` | `npm run test:jest -w backend`       |
+| Produits (Emna)                        | Système + charge | Postman (Newman), k6 | `backend/tests/system/products/`   | `npm run test:system` / `test:load`  |
+| Panier, commandes, livraison (Oussama) | Bout en bout     | Playwright           | `tests/e2e/orders/`                | `npm run test:e2e`                   |
+| Avis et réclamations (Hajer)           | Acceptation      | Cucumber             | `backend/tests/acceptance/`        | `npm run test:acceptance -w backend` |
+
+Ils utilisent les valeurs fictives de `backend/.env.test` (versionné, aucun secret) : base de test, IA locale.
+Les identifiants MySQL viennent de `backend/.env` ou de la CI. Jest et Cucumber font partie de `npm test` et
+de la CI ; les tests système, de charge et de bout en bout se lancent à part (API et front-end de test sur les
+ports 4100 et 5174).
+
 Les tests d'intégration utilisent la base `DB_NAME_TEST` : elle est reconstruite par les migrations au début
 de chaque exécution, et vidée avant chaque test (les rôles sont conservés). Helpers disponibles :
 `createTestUser`, `createAuthenticatedUser` (`backend/tests/helpers/factories.js`) et
