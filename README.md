@@ -102,19 +102,20 @@ npm run dev
 
 ## Commandes utiles (à la racine)
 
-| Commande                    | Rôle                                                                 |
-| --------------------------- | -------------------------------------------------------------------- |
-| `npm run dev`               | Lance l'API et le Front-End en parallèle                             |
-| `npm test`                  | Tous les tests (shared, back-end unitaires + intégration, front-end) |
-| `npm run test:backend`      | Tests du Back-End (MySQL nécessaire pour l'intégration)              |
-| `npm run test:frontend`     | Tests du Front-End                                                   |
-| `npm run lint`              | Vérifie le code avec ESLint                                          |
-| `npm run format`            | Formate tout le code avec Prettier                                   |
-| `npm run build`             | Build de production du Front-End                                     |
-| `npm run db:migrate`        | Applique les migrations en attente                                   |
-| `npm run db:seed`           | Insère les données de démonstration                                  |
-| `npm run db:reset`          | Recrée entièrement la base de développement                          |
-| `npm run db:up` / `db:down` | Démarre / arrête MySQL dans Docker                                   |
+| Commande                       | Rôle                                                                 |
+| ------------------------------ | -------------------------------------------------------------------- |
+| `npm run dev`                  | Lance l'API et le Front-End en parallèle                             |
+| `npm test`                     | Tous les tests (shared, back-end unitaires + intégration, front-end) |
+| `npm run test:backend`         | Tests du Back-End (MySQL nécessaire pour l'intégration)              |
+| `npm run test:frontend`        | Tests du Front-End                                                   |
+| `npm run test:jest -w backend` | Tests unitaires du module Stock avec Jest (inclus dans `npm test`)   |
+| `npm run lint`                 | Vérifie le code avec ESLint                                          |
+| `npm run format`               | Formate tout le code avec Prettier                                   |
+| `npm run build`                | Build de production du Front-End                                     |
+| `npm run db:migrate`           | Applique les migrations en attente                                   |
+| `npm run db:seed`              | Insère les données de démonstration                                  |
+| `npm run db:reset`             | Recrée entièrement la base de développement                          |
+| `npm run db:up` / `db:down`    | Démarre / arrête MySQL dans Docker                                   |
 
 Commandes de base de données avancées (depuis `backend/`) : `npm run db:migrate:status`,
 `npm run db:migrate:undo`, `npm run db:migration:create -- create-products.js`, `npm run db:seed:status`.

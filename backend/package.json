@@ -8,9 +8,10 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "vitest run",
-    "test:unit": "vitest run --project unit",
+    "test": "vitest run && npm run test:jest",
+    "test:unit": "vitest run --project unit && npm run test:jest",
     "test:integration": "vitest run --project integration",
+    "test:jest": "node --experimental-vm-modules --disable-warning=ExperimentalWarning ../node_modules/jest/bin/jest.js",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "db:create": "node src/database/create-database.js",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.0.3",
+    "jest": "^30.5.2",
     "supertest": "^7.3.1",
     "vitest": "^5.0.3"
   }

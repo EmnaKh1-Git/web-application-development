@@ -195,12 +195,13 @@ La matrice est définie une seule fois dans `shared/src/constants/permissions.js
 
 ## 9. Tests
 
-| Niveau                            | Outil                    | Emplacement                  |
-| --------------------------------- | ------------------------ | ---------------------------- |
-| Unitaires Back-End (sans BDD)     | Vitest                   | `backend/tests/unit/`        |
-| API / intégration (MySQL de test) | Vitest + Supertest       | `backend/tests/integration/` |
-| Code partagé                      | Vitest                   | `shared/tests/`              |
-| Composants et pages               | Vitest + Testing Library | `frontend/src/**/*.test.jsx` |
+| Niveau                            | Outil                      | Emplacement                  |
+| --------------------------------- | -------------------------- | ---------------------------- |
+| Unitaires Back-End (sans BDD)     | Vitest                     | `backend/tests/unit/`        |
+| Unitaires du module Stock         | Jest (imposé par le cours) | `backend/tests/unit/stock/`  |
+| API / intégration (MySQL de test) | Vitest + Supertest         | `backend/tests/integration/` |
+| Code partagé                      | Vitest                     | `shared/tests/`              |
+| Composants et pages               | Vitest + Testing Library   | `frontend/src/**/*.test.jsx` |
 
 Les tests d'intégration utilisent la base `DB_NAME_TEST` : elle est reconstruite par les migrations au début
 de chaque exécution, et vidée avant chaque test (les rôles sont conservés). Helpers disponibles :

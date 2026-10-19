@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 // Valeurs réservées aux tests automatisés (ce ne sont pas des secrets réels).
 const TEST_JWT_SECRET = 'jwt-secret-reserve-aux-tests-automatises-0123456789';
@@ -13,6 +13,8 @@ export default defineConfig({
           // Tests unitaires : aucune base de données nécessaire
           name: 'unit',
           include: ['tests/unit/**/*.test.js'],
+          // Module Stock : tests unitaires écrits avec Jest (jest.config.js), lancés par « npm run test:jest »
+          exclude: [...configDefaults.exclude, 'tests/unit/stock/**'],
           env: {
             NODE_ENV: 'test',
             JWT_SECRET: TEST_JWT_SECRET,
