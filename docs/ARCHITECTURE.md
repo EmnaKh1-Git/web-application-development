@@ -215,8 +215,8 @@ La matrice est définie une seule fois dans `shared/src/constants/permissions.js
 
 Ils utilisent les valeurs fictives de `backend/.env.test` (versionné, aucun secret) : base de test, IA locale.
 Les identifiants MySQL viennent de `backend/.env` ou de la CI. Jest et Cucumber font partie de `npm test` et
-de la CI ; les tests système, de charge et de bout en bout se lancent à part (API et front-end de test sur les
-ports 4100 et 5174).
+de la CI ; les tests système et de charge (API de test sur le port 4200) et de bout en bout (API et front-end
+de test sur les ports 4100 et 5174) se lancent à part.
 
 Les tests d'intégration utilisent la base `DB_NAME_TEST` : elle est reconstruite par les migrations au début
 de chaque exécution, et vidée avant chaque test (les rôles sont conservés). Helpers disponibles :

@@ -22,7 +22,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:4100/api/v1';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:4200/api/v1';
 const SEARCHES = [
   'search=robe',
   'search=tennis&sort=price_asc',

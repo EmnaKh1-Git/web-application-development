@@ -2,7 +2,7 @@
  * Module Produits (Emna) — tests SYSTÈME (Postman) et de CHARGE (k6).
  *
  * 1. Préparer : la base MySQL de TEST reçoit un catalogue fictif.
- * 2. L'API complète démarre sur http://localhost:4100 (mode test : base de test, IA locale).
+ * 2. L'API complète démarre sur http://localhost:4200 (mode test : base de test, IA locale).
  * 3. La collection Postman (ST-01 à ST-04) est lancée par Newman, le lanceur en ligne de
  *    commande de Postman. La même collection s'importe dans l'application Postman.
  * 4. Avec --load : le test de charge k6 (ST-05) tourne sur la même API.
@@ -21,7 +21,7 @@ import { migrator } from '../../../src/database/migrator.js';
 import { resetDatabase } from '../../helpers/database.js';
 import { createTestCategory, createTestProduct } from '../../helpers/factories.js';
 
-const PORT = 4100;
+const PORT = 4200; // port à part : les tests de bout en bout utilisent 4100
 const BASE_URL = `http://localhost:${PORT}/api/v1`;
 const withLoadTest = process.argv.includes('--load');
 const localFile = (name) => fileURLToPath(new URL(name, import.meta.url));
