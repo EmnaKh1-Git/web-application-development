@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { sendSuccess } from './core/utils/apiResponse.js';
 import { sequelize } from './database/index.js';
+import { supabase } from './config/supabase.js';
 import * as aiModule from './modules/ai/index.js';
 import * as authModule from './modules/auth/index.js';
 import * as ordersModule from './modules/orders/index.js';
@@ -47,7 +48,12 @@ export function createApiRouter() {
     const status = database === 'up' ? 'ok' : 'degraded';
     sendSuccess(
       res,
-      { status, database, uptimeSeconds: Math.round(process.uptime()) },
+      {
+        status,
+        database,
+        supabase: supabase ? 'configured' : 'disabled',
+        uptimeSeconds: Math.round(process.uptime()),
+      },
       { statusCode: database === 'up' ? 200 : 503 },
     );
   });

@@ -65,6 +65,11 @@ const envSchema = z
     AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(30_000),
     AI_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(60),
 
+    SUPABASE_URL: optionalString,
+    SUPABASE_PUBLISHABLE_KEY: optionalString,
+    SUPABASE_SECRET_KEY: optionalString,
+    SUPABASE_JWKS_URL: optionalString,
+
     // Comptes de démonstration créés par « npm run db:seed » (facultatifs)
     SEED_ADMIN_EMAIL: optionalString,
     SEED_ADMIN_PASSWORD: optionalString,
@@ -83,6 +88,16 @@ const envSchema = z
       path: ['DB_NAME_TEST'],
       message:
         'En mode test, DB_NAME_TEST est obligatoire et doit être différent de DB_NAME (les tests vident la base)',
+    },
+  )
+  .refine(
+    (env) =>
+      ![env.SUPABASE_URL, env.SUPABASE_PUBLISHABLE_KEY, env.SUPABASE_SECRET_KEY].some(Boolean) ||
+      [env.SUPABASE_URL, env.SUPABASE_PUBLISHABLE_KEY, env.SUPABASE_SECRET_KEY].every(Boolean),
+    {
+      path: ['SUPABASE_URL'],
+      message:
+        'SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY et SUPABASE_SECRET_KEY doivent être fournis ensemble',
     },
   );
 
@@ -114,4 +129,11 @@ export const env = Object.freeze({
   corsOrigins: config.CORS_ORIGIN.split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
+  supabase: {
+    enabled: Boolean(config.SUPABASE_URL && config.SUPABASE_SECRET_KEY),
+    url: config.SUPABASE_URL,
+    publishableKey: config.SUPABASE_PUBLISHABLE_KEY,
+    secretKey: config.SUPABASE_SECRET_KEY,
+    jwksUrl: config.SUPABASE_JWKS_URL,
+  },
 });
